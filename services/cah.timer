@@ -1,0 +1,10 @@
+[Unit]
+Description = Fetch Calvin & Hobbes comic
+
+[Install]
+WantedBy = timers.target
+
+[Timer]
+OnCalendar=daily
+OnActiveSec=180
+Persistent=true

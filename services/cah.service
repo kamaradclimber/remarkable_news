@@ -1,16 +1,17 @@
 [Unit]
 Description=Calvin and Hobbes
+After = network.target auditd.service
 
 [Service]
 ExecStart=/home/root/renews.arm \
     -output /usr/share/remarkable/suspended.png \
+    -test \
     -verbose \
-    -cooldown COOLDOWN \
     -url https://www.gocomics.com/random/calvinandhobbes \
     -xpath '//picture[@class="item-comic-image"]/img/@src' \
     -mode fill \
     -scale 0.9
-Restart=always
+Type = simple
 
 [Install]
 WantedBy=multi-user.target

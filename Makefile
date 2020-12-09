@@ -27,57 +27,67 @@ clean:
 	rm -f renews.x86 renews.arm release.zip
 
 define install
-	# make sure ssh agent is running
+  $(call setup)
+  $(call copy_file,renews.arm)
+  $(call backup_suspended)
+  $(call copy_file,services/$(1).service,/etc/systemd/system/)
+  $(call copy_file,services/$(1).timer,/etc/systemd/system/)
+  $(call activate_timer,$(1))
+endef
+
+define setup
 	eval $(shell ssh-agent -s)
-	# stop running service, ignore failure to stop
-	ssh -o AddKeysToAgent=yes root@$(host) systemctl stop renews || true
-	scp renews.arm root@$(host):
-	# substitute COOLDOWN/KEYWORDS arguments
-	sed -e "s|COOLDOWN|$(cooldown)|" \
-		-e "s|KEYWORDS|$(KEYWORDS)|" \
-		$(1) > renews.service
+	# make sure we have keys in agent
+	ssh -o AddKeysToAgent=yes root@$(host) hostname
+endef
+
+define copy_file
+  echo "Will copy $(1) into directory $(2)"
+	scp $(1) root@$(host):$(2)/
+endef
+
+define backup_suspended
 	# back up suspend screen.  don't overwrite existing file
 	# busybox cp doesn't have -n option, do a hacky alternative
 	ssh root@$(host) "cd /usr/share/remarkable/; ls suspended_back.png 2> /dev/null || cp suspended.png suspended_back.png"
-	# copy service to remarkable and enable
-	scp renews.service root@$(host):/etc/systemd/system/renews.service
+endef
+
+define activate_timer
 	ssh root@$(host) systemctl daemon-reload
-	ssh root@$(host) systemctl enable renews
-	ssh root@$(host) systemctl restart renews
+	ssh root@$(host) systemctl enable $(1).timer
+	ssh root@$(host) systemctl start $(1).timer
 endef
 
 # ----- Sources -----
 
 .PHONY: install_nyt
 install_nyt: renews.arm
-	$(call install,services/nyt.service)
+	$(call install,nyt)
 
 .PHONY: install_nyt_hq
 install_nyt_hq: renews.arm
-	$(call install,services/nyt-hq.service)
+	$(call install,nyt-hq)
 
 .PHONY: install_xkcd
 install_xkcd: renews.arm
-	$(call install,services/xkcd.service)
+	$(call install,xkcd)
 
 .PHONY: install_wp
 install_wp: renews.arm
-	$(call install,services/wp.service)
+	$(call install,wp)
 
 .PHONY: install_picsum
 install_picsum: renews.arm
-	$(call install,services/picsum.service)
+	$(call install,picsum)
 
 .PHONY: install_loremflickr
 install_loremflickr: renews.arm
-	$(call install,services/loremflickr.service)
+	$(call install,loremflickr)
 
 .PHONY: install_cah
 install_cah: renews.arm
-	$(call install,services/cah.service)
-
-
+	$(call install,cah)
 
 # .PHONY: install_wikipotd
 # install_wikipotd: renews.arm
-# 	$(call install,services/wikipotd.service)
+# 	$(call install,wikipotd)
